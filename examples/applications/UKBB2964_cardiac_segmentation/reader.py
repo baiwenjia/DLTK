@@ -30,22 +30,23 @@ def receiver(file_references, mode, params=None):
     i = 0
     while True:
 
-        img_fn = file_references[i][1]
+        img_fn = file_references[i]
         i += 1
         if i == len(file_references):
             i = 0
 
-        t1 = sitk.GetArrayFromImage(sitk.ReadImage(os.path.join(str(img_fn), 'T1.nii')))
-        t1_ir = sitk.GetArrayFromImage(sitk.ReadImage(os.path.join(str(img_fn), 'T1_IR.nii')))
-        t2_fl = sitk.GetArrayFromImage(sitk.ReadImage(os.path.join(str(img_fn), 'T2_FLAIR.nii')))
+        image = sitk.GetArrayFromImage(sitk.ReadImage(img_fn))
 
         # Normalise volume images
-        t1 = whitening(t1)
-        t1_ir = whitening(t1_ir)
-        t2_fl = whitening(t2_fl)
+        image = normalise_zero_one(image)
+
+        # Add a channel dimension
+
+
+        # Move z dimension to batch
 
         # Create a 4D multi-sequence image (i.e. [channels, x, y, z])
-        images = np.asarray([t1, t1_ir, t2_fl]).astype(np.float32)
+        # images = np.asarray([t1, t1_ir, t2_fl]).astype(np.float32)
 
         # Transpose to [batch, x, y, z, channel] as required input by the network
         images = np.transpose(images, (1, 2, 3, 0))
@@ -53,7 +54,9 @@ def receiver(file_references, mode, params=None):
         if mode == tf.estimator.ModeKeys.PREDICT:
             yield {'features': {'x': images}, 'labels': None}
 
-        lbl = sitk.GetArrayFromImage(sitk.ReadImage(os.path.join(str(img_fn), 'LabelsForTraining.nii'))).astype(
+        lbl = sitk.GetArrayFromImage(sitk.ReadImage(
+
+            os.path.join(str(img_fn), 'LabelsForTraining.nii'))).astype(
             np.int32)
 
         # Augment if used in training mode
@@ -63,7 +66,7 @@ def receiver(file_references, mode, params=None):
         # Check if the reader is supposed to return training examples or full images
         if params['extract_examples']:
             images, lbl = extract_class_balanced_example_array(images, lbl, example_size=example_size,
-                                                               n_examples=n_examples, classes=9)
+                                                               n_examples=n_examples, classes=4)
             for e in range(n_examples):
                 yield {'features': {'x': images[e].astype(np.float32)}, 'labels': {'y': lbl[e].astype(np.int32)}}
         else:
