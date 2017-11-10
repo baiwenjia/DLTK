@@ -14,7 +14,7 @@ import tensorflow as tf
 
 from dltk.core.metrics import *
 from dltk.core.losses import *
-from dltk.models.segmentation.unet import residual_fcn_3D
+from dltk.models.segmentation.fcn import residual_fcn_3D
 from dltk.io.abstract_reader import Reader
 from reader import receiver, save_fn
 
@@ -98,8 +98,8 @@ def train(args):
     train_filenames = pd.read_csv(args.train_csv)['image_name']
     val_filenames = pd.read_csv(args.validation_csv)['image_name']
     
-    # Set up a data reader to handle the file i/o. 
-    reader_params = {'n_examples': 10, 'example_size': [1, 160, 160], 'extract_examples': True}
+    # Set up a data reader to handle the file i/o.
+    reader_params = {'n_examples': None, 'example_size': [1, 192, 192], 'extract_examples': False}
     reader_example_shapes = {'features': {'x': reader_params['example_size'] + [NUM_CHANNELS,]},
                              'labels': {'y': reader_params['example_size']}}
     reader = Reader(receiver, save_fn, {'features': {'x': tf.float32}, 'labels': {'y': tf.int32}})
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', default=False, action='store_true')
     parser.add_argument('--cuda_devices', '-c', default='0')
     
-    parser.add_argument('--save_path', '-p', default='/tmp/ukbb2964_segmentation/')
+    parser.add_argument('--save_path', '-p', default='/vol/bitbucket/wbai/tmp/ukbb2964_segmentation/')
     parser.add_argument('--train_csv', default='ukbb2964_train.csv')
     parser.add_argument('--validation_csv', default='ukbb2964_validation.csv')
     
